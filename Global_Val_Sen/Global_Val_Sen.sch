@@ -1493,7 +1493,7 @@ F 3 "" H 9625 5225 50  0001 L BNN
 	2    9625 5225
 	1    0    0    -1  
 $EndComp
-Text GLabel 10100 2975 0    50   Input ~ 0
+Text GLabel 10100 2875 0    50   Input ~ 0
 SDA0
 Wire Wire Line
 	10100 2975 10175 2975
@@ -1512,7 +1512,7 @@ F 3 "" H 10100 2750 50  0001 C CNN
 $EndComp
 Wire Wire Line
 	10175 2775 10175 2750
-Text GLabel 10100 2875 0    50   Input ~ 0
+Text GLabel 10100 2975 0    50   Input ~ 0
 SCL0
 Wire Wire Line
 	10100 2875 10175 2875
@@ -1533,10 +1533,6 @@ F 3 "" H 9700 3050 50  0001 C CNN
 $EndComp
 Wire Wire Line
 	10175 2700 10175 2650
-Text GLabel 10150 5125 0    50   Input ~ 0
-SDA0
-Text GLabel 10150 5225 0    50   Input ~ 0
-SCL0
 Wire Wire Line
 	10225 5125 10150 5125
 Wire Wire Line
@@ -1665,7 +1661,6 @@ F 3 "" H 10225 4825 50  0001 C CNN
 	1    10225 4825
 	0    -1   -1   0   
 $EndComp
-NoConn ~ 10225 4925
 Wire Wire Line
 	10225 5025 9725 5025
 Wire Wire Line
@@ -1702,4 +1697,27 @@ SCL0
 NoConn ~ 10875 5150
 NoConn ~ 10875 5025
 NoConn ~ 10875 4875
+Text GLabel 10150 5125 0    50   Input ~ 0
+SDA0
+Text GLabel 10150 5225 0    50   Input ~ 0
+SCL0
+$Comp
+L power:+5V #PWR0129
+U 1 1 6360CDDA
+P 1850 1900
+F 0 "#PWR0129" H 1850 1750 50  0001 C CNN
+F 1 "+5V" H 1865 2073 50  0000 C CNN
+F 2 "" H 1850 1900 50  0001 C CNN
+F 3 "" H 1850 1900 50  0001 C CNN
+	1    1850 1900
+	0    -1   -1   0   
+$EndComp
+Text GLabel 9900 5025 1    50   Input ~ 0
+SGND
+Text GLabel 1850 1700 0    50   Input ~ 0
+SGND
+Text GLabel 10225 4925 0    50   Input ~ 0
+S3.3v
+Text GLabel 1850 1800 0    50   Input ~ 0
+S3.3v
 $EndSCHEMATC

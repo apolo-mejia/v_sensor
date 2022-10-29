@@ -1,4 +1,4 @@
-/* Algoritmo que del sensor, esta es el sensor de vibracion*/
+git/* Algoritmo que del sensor, esta es el sensor de vibracion*/
 
 /****** -- USO DE LOS PROCESADORES ******/
 /****** -- LIBRERIAS -- ******/
@@ -6,12 +6,21 @@
 #include <WiFi.h>
 #include <Wire.h>
 #include <ADXL345_WE.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
 /*********************** -- DEFINICIONES -- ************************/
 // Direccion del accelerometroADXL345
-#define ADXL345_I2CADDR 0x53  
+#define ADXL345_I2CADDR 0x53
+// Definiciones de la pantalla
+#define SCREEN_WIDTH 128 // OLED display width, in pixels
+#define SCREEN_HEIGHT 32 // OLED display height, in pixels
+#define SCREEN_ADDRESS 0x3C ///< See datasheet for Address; 0x3D for 128x64, 0x3C for 128x32
+#define OLED_RESET     -1 // Reset pin # (or -1 if sharing Arduino reset pin)
 /************************* -- SETTINGS -- **************************/
 // Creacion del objeto myAcc: "My accelerometro"
 ADXL345_WE myAcc = ADXL345_WE(ADXL345_I2CADDR);
+// Creacion del objeto display: "My pantalla"
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 /******* -- STRUCTURAS DE DATOS EN COMUNICACION ESP NOW -- *********/
 // Estructuras del mensage a enviar
 typedef struct struct_message {
@@ -27,7 +36,16 @@ typedef struct struct_message2 {
   byte request;           // ¿Que necesita apa?
   }struct_message2;
 
+/***********************  -- CONSTANTES -- *************************/
+// Pines usados para controlar encendido de perifericos
+const int outSen = 18;    // Sensor ON/OFF
+const int outScr = 19;    // Pantalla ON/OFF
+
 /********************* -- VARIABLES GLOBALES -- ********************/
+// Global Variables
+int staSen = HIGH;
+int staScr = HIGH;
+
 // Creemos las variables de envio y recepcion de ESP_NOW, 
 struct_message data2send;
 struct_message2 data2rec;
@@ -90,15 +108,61 @@ void enviopack(float medida[1750], int lon){
     // Serial.print("el inicializador es ");Serial.println(ini);
   }
 }
+/********************* -- FUNCIONES PARA PANTALLA -- ********************/
+// Texto grande una Linea hasta 10 caracteres
+void OneLine(char caracteres[]) {
+  display.clearDisplay();
+  display.drawRoundRect(1,1, display.width()-1, display.height()-1, 4, SSD1306_WHITE);
+  display.setTextSize(2.5);              // Normal 1:1 pixel scale
+  display.setTextColor(SSD1306_WHITE); // Draw white text
+  display.setCursor(6, 9);           // Start at point
+  display.println(F(caracteres));
+  display.display();
+  delay(2);
+}
+
+// Texto pequeño con dos lineas
+void TwoLine(char linea1[], char linea2[]) {
+  display.clearDisplay();
+  display.drawRoundRect(1,1, display.width()-1, display.height()-1, 4, SSD1306_WHITE);
+  display.setTextSize(1);              // Normal 1:1 pixel scale
+  display.setTextColor(SSD1306_WHITE); // Draw white text
+  display.setCursor(8, 6);             // Start point for a first line
+  display.print(F(linea1));
+  display.setCursor(8,16);             // Start point for a second line
+  display.print(F(linea2));
+  display.display();
+  delay(2);
+}
+
 
 void setup() {
- 
+
+  // Definamos como salidas digitales de la pantalla y el sensor
+  pinMode(outSen, OUTPUT);
+  pinMode(outScr, OUTPUT);
+  delay(100);
+
+  // Encendamos  la pantalla y el sensor
+  digitalWrite(outSen, staSen);
+  digitalWrite(outScr, staScr);
+  delay(500);
+  
   // Set up Serial Monitor
   Serial.begin(115200);
 
- // Inicio del bus I2C 
-  Wire.begin();
+
+  // Inicio del bus I2C (vamos a colocar los pines trocados
+  Wire.begin(22,21);
   Wire.setClock(400000);
+
+  // Inicializacion de la pantalla
+  //SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
+  if(!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
+    Serial.println(F("SSD1306 allocation failed"));
+    for(;;); // Don't proceed, loop forever
+  }
+  display.display();
 
   // Iniciemos el accelerador
   if(!myAcc.init()){
@@ -170,9 +234,12 @@ void setup() {
 }
 void loop() {
 
+  OneLine("H:DEDALO05");
+
     if ((data2rec.request & 0x01) == 0x01){
       count = 0;
       Serial.println("iniciando la toma...");
+      TwoLine("TOMANDO DATOS", "TAREA XX");
       start=millis();
       data2send.tsample = duration;
       enlapsed= start + duration;
@@ -186,20 +253,24 @@ void loop() {
     data2send.nsamples=count;
     meas = 0x0007;
     Serial.println("lista la toma");
+    TwoLine("DATOS TOMADOS", "TAREA XX");
     data2rec.request = data2rec.request & 0xFE;
     }
     if ((data2rec.request & 0x02) == 0x02){
       if ((meas & 0x0001) == 0x0001){
+        TwoLine("ENVIANDO DATOS", "ACCX-TAREA XX");
         data2send.variable = 0x0001;
         enviopack(accx, count);
         meas = meas & 0xFFFE;
       }
       if ((meas & 0x0002) == 0x0002){
+        TwoLine("ENVIANDO DATOS", "ACCY-TAREA XX");
         data2send.variable = 0x0002;
         enviopack(accy, count);
         meas = meas & 0xFFFD;
       }
       if ((meas & 0x0004) == 0x0004){
+        TwoLine("ENVIANDO DATOS", "ACCZ-TAREA XX");
         data2send.variable = 0x0004;
         enviopack(accz, count);
         meas = meas & 0xFFFB;
@@ -210,47 +281,3 @@ void loop() {
     }  
   
   }
-/*
-void loop() {
-
-  String msg;
-  int duration=500;
-   if (Serial.available() > 0){
-    msg = Serial.readString();
-    if (msg == "meas1"){
-      count = 0;
-      Serial.println("iniciando la toma...");
-      start=millis();
-      data2send.tsample = duration;
-      enlapsed= start + duration;
-      while ( millis() < enlapsed){
-        xyzFloat g = myAcc.getGValues(); 
-        accx[count] = g.x;
-        accy[count] = g.y;
-        accz[count] = g.z;
-        count++;
-      }
-    data2send.nsamples=count;
-    Serial.println("lista la toma");
-    }    
-    else if (msg == "meas2"){
-      if ((meas & 0x0001) == 0x0001){
-        data2send.variable = 0x0001;
-        enviopack(accx, lmeas);
-        meas = meas & 0xFFFE;
-      }
-      if ((meas & 0x0002) == 0x0002){
-        data2send.variable = 0x0002;
-        enviopack(accy, lmeas);
-        meas = meas & 0xFFFD;
-      }
-      if ((meas & 0x0004) == 0x0004){
-        data2send.variable = 0x0004;
-        enviopack(accz, lmeas);
-        meas = meas & 0xFFFB;
-      }
-    Serial.print("La variable meas quedo en : "); Serial.println(meas);
-    }
-  }
-}
-*/
